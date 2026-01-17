@@ -48,7 +48,6 @@ dependencies {
     api("net.runelite:runelite-api:${project.version}")
     implementation(project(":jshell"))
     runtimeOnly("net.runelite:injected-client:${project.version}")
-
     api(libs.rl.http.api)
     api(libs.rl.discord)
     api(libs.rl.awt)
