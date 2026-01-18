@@ -1,82 +1,108 @@
+/*
+ * Copyright (c) 2018, https://runelitepl.us
+ * Copyright (c) 2019, Infinitay <https://github.com/Infinitay>
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package net.runelite.client.plugins.vorkath;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.geom.Arc2D;
+import java.awt.image.BufferedImage;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.Point;
-import net.runelite.api.Skill;
 import net.runelite.api.coords.LocalPoint;
-import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import net.runelite.client.ui.overlay.OverlayUtil;
 
-import javax.inject.Inject;
-import java.awt.*;
-import java.awt.geom.Arc2D;
-import java.awt.image.BufferedImage;
+@Singleton
+public class VorkathOverlay extends Overlay
+{
+	private static final Color COLOR_ICON_BACKGROUND = new Color(0, 0, 0, 128);
+	private static final Color COLOR_ICON_BORDER = new Color(0, 0, 0, 255);
+	private static final Color COLOR_ICON_BORDER_FILL = new Color(219, 175, 0, 255);
+	private static final int OVERLAY_ICON_DISTANCE = 30;
+	private static final int OVERLAY_ICON_MARGIN = 1;
 
-public class VorkathOverlay extends Overlay {
+	private final Client client;
+	private final VorkathPlugin plugin;
 
-    private static final Color COLOR_ICON_BACKGROUND = new Color(0, 0, 0, 128);
-    private static final Color COLOR_ICON_BORDER = new Color(0, 0, 0, 255);
-    private static final Color COLOR_ICON_BORDER_FILL = new Color(219, 175, 0, 255);
-    private static final int OVERLAY_ICON_DISTANCE = 30;
-    private static final int OVERLAY_ICON_MARGIN = 1;
+    private static final Font PHASE_FONT = new Font("Arial", Font.BOLD, 18);
 
-    private Client client;
-    private VorkathPlugin plugin;
 
-    @Inject
-    private SkillIconManager iconManager;
+	@Inject
+	public VorkathOverlay(final Client client, final VorkathPlugin plugin)
+	{
+		setPosition(OverlayPosition.DYNAMIC);
+		setLayer(OverlayLayer.ABOVE_SCENE);
+		this.client = client;
+		this.plugin = plugin;
+	}
 
-    @Inject
-    public VorkathOverlay(Client client, VorkathPlugin plugin)
+    private String getPhaseText(Vorkath vorkath)
     {
-        setPosition(OverlayPosition.DYNAMIC);
-        setLayer(OverlayLayer.ABOVE_SCENE);
-        this.client = client;
-        this.plugin = plugin;
-    }
-
-    private BufferedImage getIcon(Vorkath.AttackStyle attackStyle)
-    {
-        switch (attackStyle)
+        switch (vorkath.getCurrentPhase())
         {
-            case MAGERANGE: return iconManager.getSkillImage(Skill.MAGERANGE);
-            case ICE: return iconManager.getSkillImage(Skill.ICE);
-            case ACID: return iconManager.getSkillImage(Skill.ACID);
+            case UNKNOWN:  return "UNKNOWN";
+            case ACID:     return "ACID";
+            case FIRE_BALL:return "FIRE BALL";
+            case SPAWN:    return "SPAWN";
         }
-        return null;
+        return "";
     }
 
-    @Override
-    public Dimension render(Graphics2D graphics) {
+	@Override
+	public Dimension render(Graphics2D graphics)
+	{
+		if (plugin.getVorkath() != null)
+		{
+			Vorkath vorkath = plugin.getVorkath();
 
-        if (plugin.getSpawn() != null) {
-            ZombifiedSpawn spawn = plugin.getSpawn();
-            OverlayUtil.renderTileOverlay(client, graphics, spawn.getNpc().getLocalLocation(), getIcon(Vorkath.AttackStyle.ICE), Color.green);
-        }
+			LocalPoint localLocation = vorkath.getVorkath().getLocalLocation();
+			if (localLocation != null)
+			{
+				Point point = Perspective.localToCanvas(client, localLocation, client.getPlane(), vorkath.getVorkath().getLogicalHeight() + 16);
+				if (point != null)
+				{
+					point = new Point(point.getX(), point.getY());
 
-        if(plugin.getVorkath() != null){
-            Vorkath vorkath = plugin.getVorkath();
-
-            LocalPoint localLocation = vorkath.getNpc().getLocalLocation();
-            if(localLocation != null){
-                Point point = Perspective.localToCanvas(client, localLocation, client.getPlane(), vorkath.getNpc().getLogicalHeight() + 16);
-                if (point != null) {
-                    point = new Point(point.getX(), point.getY());
-
-                    BufferedImage icon = null;
-                    if(vorkath.getPhase() == 0){
-                        icon = getIcon(Vorkath.AttackStyle.MAGERANGE);
-                    } else if(vorkath.getPhase() == 1) {
-                        icon = getIcon(Vorkath.AttackStyle.ACID);
-                    } else if(vorkath.getPhase() == 2) {
-                        icon = getIcon(Vorkath.AttackStyle.ICE);
+                    BufferedImage currentPhaseIcon = getIcon(vorkath);
+                    if (currentPhaseIcon == null)
+                    {
+                        return null;
                     }
 
-                    int totalWidth = icon.getWidth() * OVERLAY_ICON_MARGIN;
+                    int totalWidth = currentPhaseIcon.getWidth() * OVERLAY_ICON_MARGIN;
                     int bgPadding = 8;
                     int currentPosX = 0;
 
@@ -84,39 +110,82 @@ public class VorkathOverlay extends Overlay {
                     graphics.setColor(COLOR_ICON_BACKGROUND);
                     graphics.fillOval(
                             point.getX() - totalWidth / 2 + currentPosX - bgPadding,
-                            point.getY() - icon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
-                            icon.getWidth() + bgPadding * 2,
-                            icon.getHeight() + bgPadding * 2);
+                            point.getY() - currentPhaseIcon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
+                            currentPhaseIcon.getWidth() + bgPadding * 2,
+                            currentPhaseIcon.getHeight() + bgPadding * 2);
 
                     graphics.setColor(COLOR_ICON_BORDER);
                     graphics.drawOval(
                             point.getX() - totalWidth / 2 + currentPosX - bgPadding,
-                            point.getY() - icon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
-                            icon.getWidth() + bgPadding * 2,
-                            icon.getHeight() + bgPadding * 2);
+                            point.getY() - currentPhaseIcon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
+                            currentPhaseIcon.getWidth() + bgPadding * 2,
+                            currentPhaseIcon.getHeight() + bgPadding * 2);
 
                     graphics.drawImage(
-                            icon,
+                            currentPhaseIcon,
                             point.getX() - totalWidth / 2 + currentPosX,
-                            point.getY() - icon.getHeight() / 2 - OVERLAY_ICON_DISTANCE,
+                            point.getY() - currentPhaseIcon.getHeight() / 2 - OVERLAY_ICON_DISTANCE,
                             null);
 
                     graphics.setColor(COLOR_ICON_BORDER_FILL);
                     Arc2D.Double arc = new Arc2D.Double(
                             point.getX() - totalWidth / 2 + currentPosX - bgPadding,
-                            point.getY() - icon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
-                            icon.getWidth() + bgPadding * 2,
-                            icon.getHeight() + bgPadding * 2,
+                            point.getY() - currentPhaseIcon.getHeight() / 2 - OVERLAY_ICON_DISTANCE - bgPadding,
+                            currentPhaseIcon.getWidth() + bgPadding * 2,
+                            currentPhaseIcon.getHeight() + bgPadding * 2,
                             90.0,
-                            -360.0 * (vorkath.ATTACKS_PER_SWITCH -
-                                    vorkath.getAttacksUntilSwitch()) / vorkath.ATTACKS_PER_SWITCH,
+                            -360.0 * getAttacksLeftProgress(),
                             Arc2D.OPEN);
+
                     graphics.draw(arc);
-                }
-            }
-        }
 
-        return null;
-    }
+                    String phaseText = getPhaseText(vorkath) + " (" + vorkath.getAttacksLeft() + ")";
+                    graphics.setFont(PHASE_FONT);
 
+                    FontMetrics fm = graphics.getFontMetrics();
+                    int textX = point.getX() - (fm.stringWidth(phaseText) / 2);
+                    int textY = point.getY() - OVERLAY_ICON_DISTANCE - (currentPhaseIcon.getHeight() / 2) - 10;
+
+                    OverlayUtil.renderTextLocation(graphics, new Point(textX, textY), phaseText, Color.WHITE);
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param vorkath Vorkath object
+	 * @return image of the current phase Vorkath is on
+	 */
+	private BufferedImage getIcon(Vorkath vorkath)
+	{
+		switch (vorkath.getCurrentPhase())
+		{
+			case UNKNOWN:
+				return VorkathPlugin.UNKNOWN;
+			case ACID:
+				return VorkathPlugin.ACID;
+			case FIRE_BALL:
+				return VorkathPlugin.FIRE_BALL;
+			case SPAWN:
+				return VorkathPlugin.SPAWN;
+		}
+		return null;
+	}
+
+	/**
+	 * @return number of attacks Vorkath has left in the current phase
+	 */
+	private double getAttacksLeftProgress()
+	{
+		if (plugin.getVorkath().getCurrentPhase() != Vorkath.Phase.FIRE_BALL)
+		{
+			return (double) (Vorkath.ATTACKS_PER_SWITCH - plugin.getVorkath().getAttacksLeft()) / Vorkath.ATTACKS_PER_SWITCH;
+		}
+		else
+		{
+			return (double) (Vorkath.FIRE_BALL_ATTACKS - plugin.getVorkath().getAttacksLeft()) / Vorkath.FIRE_BALL_ATTACKS;
+		}
+	}
 }

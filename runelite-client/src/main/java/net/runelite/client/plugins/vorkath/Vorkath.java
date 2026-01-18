@@ -1,42 +1,84 @@
 package net.runelite.client.plugins.vorkath;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.NPC;
 
-public class Vorkath {
+@Data
+@Slf4j
+public class Vorkath
+{
+	static final int ATTACKS_PER_SWITCH = 6;
+	static final int FIRE_BALL_ATTACKS = 25;
 
-    static final int ATTACKS_PER_SWITCH = 6;
+	private NPC vorkath;
 
-    enum AttackStyle{
-        MAGERANGE,
-        ICE,
-        ACID
-    }
+	private VorkathAttack lastAttack;
 
-    @Getter
-    private NPC npc;
+	private Phase currentPhase;
+	private Phase nextPhase;
+	private Phase lastPhase;
 
-    @Getter
-    @Setter
-    private int phase;
+	private int attacksLeft;
 
-    @Getter
-    @Setter
-    private int attacksUntilSwitch;
+	enum Phase
+	{
+		UNKNOWN,
+		ACID,
+		FIRE_BALL,
+		SPAWN
+	}
 
-    @Getter
-    @Setter
-    private int lastTickAnimation;
+	public Vorkath(NPC vorkath)
+	{
+		this.vorkath = vorkath;
+		this.attacksLeft = ATTACKS_PER_SWITCH;
+		this.currentPhase = Phase.UNKNOWN;
+		this.nextPhase = Phase.UNKNOWN;
+		this.lastPhase = Phase.UNKNOWN;
+		log.debug("[Vorkath] Created Vorkath: {}", this);
+	}
 
-    @Getter
-    @Setter
-    private boolean icePhaseAttack;
+	/**
+	 * Updates the existing Vorkath object depending on the new phase it is currently on
+	 *
+	 * @param newPhase the new phase Vorkath is current on
+	 */
+	void updatePhase(Phase newPhase)
+	{
+		Phase oldLastPhase = this.lastPhase;
+		Phase oldCurrentPhase = this.currentPhase;
+		Phase oldNextPhase = this.currentPhase;
+		int oldAttacksLeft = this.attacksLeft;
 
-    public Vorkath(NPC npc)
-    {
-        this.npc = npc;
-        this.attacksUntilSwitch = ATTACKS_PER_SWITCH;
-        this.phase = 0;
-    }
+		this.lastPhase = this.currentPhase;
+		this.currentPhase = newPhase;
+		switch (newPhase)
+		{
+			case ACID:
+				this.nextPhase = Phase.FIRE_BALL;
+				break;
+			case FIRE_BALL:
+				this.nextPhase = Phase.SPAWN;
+				break;
+			case SPAWN:
+				this.nextPhase = Phase.ACID;
+				break;
+			default:
+				this.nextPhase = Phase.UNKNOWN;
+				break;
+		}
+
+		if (this.currentPhase == Phase.FIRE_BALL)
+		{
+			this.attacksLeft = FIRE_BALL_ATTACKS;
+		}
+		else
+		{
+			this.attacksLeft = ATTACKS_PER_SWITCH;
+		}
+
+		log.debug("[Vorkath] Update! Last Phase: {}->{}, Current Phase: {}->{}, Next Phase: {}->{}, Attacks: {}->{}",
+			oldLastPhase, this.lastPhase, oldCurrentPhase, this.currentPhase, oldNextPhase, this.nextPhase, oldAttacksLeft, this.attacksLeft);
+	}
 }
