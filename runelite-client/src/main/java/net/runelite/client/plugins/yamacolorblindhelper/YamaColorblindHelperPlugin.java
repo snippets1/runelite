@@ -25,9 +25,9 @@ public class YamaColorblindHelperPlugin extends Plugin
     private static final Set<Integer> YAMA_NPC_IDS = Set.of(14176);
 
     // Yama arm/actor spotanims (visible on NPC)
-    private static final int NPC_GFX_MAGIC  = 3249;
-    private static final int NPC_GFX_RANGED = 3253;
-    private static final int VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01 = 3256;
+    private static final int NPC_GFX_MAGIC  = 3246;
+    private static final int NPC_GFX_RANGED = 3243;
+    private static final int VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01 = 3259;
     private static final int VFX_YAMA_METEOR_SPOTANIM01 = 3270;
     private static final int YAMA_SPECIAL_ATTACK = 12145;
     private String calloutText = null;
@@ -231,13 +231,13 @@ public class YamaColorblindHelperPlugin extends Plugin
         if (sawMeteor)
         {
             chosenGfx = VFX_YAMA_METEOR_SPOTANIM01;
-            msg = "METEOR STRIKE, WALK ON RED";
+            msg = "METEOR STRIKE, WALK ON RED, PRAY MAGIC";
             pray = Prayer.PROTECT_FROM_MAGIC;
         }
         else if (sawShadow)
         {
             chosenGfx = VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01;
-            msg = "SHADOW STOMP, WALK ON BLUE";
+            msg = "SHADOW STOMP, WALK ON BLUE, PRAY RANGE";
             pray = Prayer.PROTECT_FROM_MISSILES;
         }
         else if (sawRange)
