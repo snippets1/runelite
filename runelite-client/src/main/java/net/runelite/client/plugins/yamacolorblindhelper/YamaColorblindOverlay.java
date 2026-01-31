@@ -10,6 +10,7 @@ import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -140,6 +141,24 @@ public class YamaColorblindOverlay extends Overlay
                 // main
                 g.setColor(Color.WHITE);
                 g.drawString(display, p.getX(), p.getY());
+            }
+        }
+        WorldPoint dodge = plugin.getDodgeTile();
+        if (dodge != null)
+        {
+            LocalPoint lp = LocalPoint.fromWorld(client, dodge);
+            if (lp != null)
+            {
+                Polygon poly = Perspective.getCanvasTilePoly(client, lp);
+                if (poly != null)
+                {
+                    g.setColor(new Color(255, 255, 0, 60)); // yellow fill
+                    g.fillPolygon(poly);
+
+                    g.setColor(new Color(255, 255, 255, 220)); // white outline
+                    g.setStroke(new BasicStroke(3f));
+                    g.drawPolygon(poly);
+                }
             }
         }
 
