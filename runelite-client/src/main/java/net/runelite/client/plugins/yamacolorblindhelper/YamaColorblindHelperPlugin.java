@@ -87,6 +87,8 @@ public class YamaColorblindHelperPlugin extends Plugin
     // NPC full-area “active” timers (style-specific)
     private int magicNpcExpiryTick  = -1;
     private int rangedNpcExpiryTick = -1;
+    private int lastCalloutTick = -1;
+    private int lastCalloutGfx = -1;
 
     // Rockfall tiles (instance-safe, scene-local)
     private final Map<LocalPoint, Integer> rockTiles = new HashMap<>();
@@ -184,7 +186,6 @@ public class YamaColorblindHelperPlugin extends Plugin
         return out;
     }
     /* ---------------- Visible spotanims → cosmetic flare on Yama ---------------- */
-
     @Subscribe
     public void onGraphicChanged(GraphicChanged e)
     {
@@ -200,34 +201,68 @@ public class YamaColorblindHelperPlugin extends Plugin
             return;
         }
 
+        int now = client.getTickCount();
+        int expiry = now + Math.max(1, config.flashTicks());
+
+        // We’ll pick ONE callout per event, with priority.
+        // Highest priority first.
+        boolean sawMeteor = false;
+        boolean sawShadow = false;
+        boolean sawMagic  = false;
+        boolean sawRange  = false;
+
         for (ActorSpotAnim s : npc.getSpotAnims())
         {
             int gfx = s.getId();
 
             // Keep your existing flare timers
-            int now = client.getTickCount();
-            int expiry = now + Math.max(1, config.flashTicks());
+            if (gfx == NPC_GFX_MAGIC)  { magicNpcExpiryTick  = expiry; sawMagic = true; }
+            if (gfx == NPC_GFX_RANGED) { rangedNpcExpiryTick = expiry; sawRange = true; }
 
-            if (gfx == NPC_GFX_MAGIC)  magicNpcExpiryTick  = expiry;
-            if (gfx == NPC_GFX_RANGED) rangedNpcExpiryTick = expiry;
+            if (gfx == VFX_YAMA_METEOR_SPOTANIM01)          { sawMeteor = true; }
+            else if (gfx == VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01) { sawShadow = true; }
+        }
 
+        // Choose the best callout (priority order)
+        int chosenGfx = -1;
+        String msg = null;
+        Prayer pray = null;
 
-            if (gfx == NPC_GFX_RANGED)
+        if (sawMeteor)
+        {
+            chosenGfx = VFX_YAMA_METEOR_SPOTANIM01;
+            msg = "METEOR STRIKE, WALK ON RED";
+            pray = Prayer.PROTECT_FROM_MAGIC;
+        }
+        else if (sawShadow)
+        {
+            chosenGfx = VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01;
+            msg = "SHADOW STOMP, WALK ON BLUE";
+            pray = Prayer.PROTECT_FROM_MISSILES;
+        }
+        else if (sawRange)
+        {
+            chosenGfx = NPC_GFX_RANGED;
+            msg = "RANGED ATTACK";
+            pray = Prayer.PROTECT_FROM_MISSILES;
+        }
+        else if (sawMagic)
+        {
+            chosenGfx = NPC_GFX_MAGIC;
+            msg = "MAGIC ATTACK";
+            pray = Prayer.PROTECT_FROM_MAGIC;
+        }
+
+        if (msg != null)
+        {
+            if (now == lastCalloutTick && chosenGfx == lastCalloutGfx)
             {
-                setCallout("RANGED ATTACK", Prayer.PROTECT_FROM_MAGIC);
+                return;
             }
-            else if (gfx == NPC_GFX_MAGIC)
-            {
-                setCallout("MAGIC ATTACK", Prayer.PROTECT_FROM_MAGIC);
-            }
-            else if (gfx == VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01)
-            {
-                setCallout("SHADOW STOMP, PRAY RANGE, WALK NEAR BLUE", Prayer.PROTECT_FROM_MISSILES);
-            }
-            else if (gfx == VFX_YAMA_METEOR_SPOTANIM01)
-            {
-                setCallout("FIRE BALL, WALK ON RED, PRAY MAGIC", Prayer.PROTECT_FROM_MAGIC);
-            }
+            lastCalloutTick = now;
+            lastCalloutGfx = chosenGfx;
+
+            setCallout(msg, pray);
         }
     }
     /* ---------------- Rockfall tiles from ground GFX ---------------- */
