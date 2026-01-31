@@ -1,17 +1,11 @@
 package net.runelite.client.plugins.yamacolorblindhelper;
 
 import com.google.inject.Provides;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import javax.inject.Inject;
 
-import net.runelite.api.Actor;
-import net.runelite.api.ActorSpotAnim;
-import net.runelite.api.Client;
-import net.runelite.api.GraphicsObject;
-import net.runelite.api.NPC;
+import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GraphicChanged;
@@ -37,6 +31,33 @@ public class YamaColorblindHelperPlugin extends Plugin
     // Yama arm/actor spotanims (visible on NPC)
     private static final int NPC_GFX_MAGIC  = 3246;
     private static final int NPC_GFX_RANGED = 3243;
+    private static final int VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01 = 3256;
+    private static final int VFX_YAMA_METEOR_SPOTANIM01 = 3270;
+    private String calloutText = null;
+    private int calloutExpiryTick = -1;
+    private static final Set<Integer> VOID_FLARE_NPC_IDS = Set.of(14179); // (you listed 14179 twice)
+    private final Set<Integer> voidFlareIndexes = new HashSet<>();
+
+    // Optional: show a recommended prayer icon somewhere else later
+    private Prayer calloutPrayer = null;
+
+    String getCalloutText() { return calloutText; }
+    int getCalloutTicksRemaining()
+    {
+        if (calloutExpiryTick < 0) return -1;
+        int rem = calloutExpiryTick - client.getTickCount();
+        return rem > 0 ? rem : -1;
+    }
+    Prayer getCalloutPrayer() { return calloutPrayer; }
+
+    private void setCallout(String text, Prayer prayer)
+    {
+        int now = client.getTickCount();
+        int expiry = now + Math.max(1, config.flashTicks()); // reuse your tick duration setting
+        calloutText = text;
+        calloutPrayer = prayer;
+        calloutExpiryTick = expiry;
+    }
 
     @Inject private Client client;
     @Inject private OverlayManager overlayManager;
@@ -65,6 +86,11 @@ public class YamaColorblindHelperPlugin extends Plugin
         yamaIndexes.clear();
         rockTiles.clear();
         magicNpcExpiryTick = rangedNpcExpiryTick = -1;
+        calloutText = null;
+        calloutPrayer = null;
+        calloutExpiryTick = -1;
+        voidFlareIndexes.clear();
+
     }
 
     @Override
@@ -74,6 +100,11 @@ public class YamaColorblindHelperPlugin extends Plugin
         yamaIndexes.clear();
         rockTiles.clear();
         magicNpcExpiryTick = rangedNpcExpiryTick = -1;
+        calloutText = null;
+        calloutPrayer = null;
+        calloutExpiryTick = -1;
+        voidFlareIndexes.clear();
+
     }
 
     /* ---------------- Presence tracking ---------------- */
@@ -93,34 +124,94 @@ public class YamaColorblindHelperPlugin extends Plugin
         return null;
     }
 
-    @Subscribe public void onNpcSpawned(NpcSpawned e)   { if (isYama(e.getNpc())) yamaIndexes.add(e.getNpc().getIndex()); }
-    @Subscribe public void onNpcDespawned(NpcDespawned e){ yamaIndexes.remove(e.getNpc().getIndex()); }
 
+
+    @Subscribe
+    public void onNpcSpawned(NpcSpawned e)
+    {
+        NPC npc = e.getNpc();
+
+        if (isYama(npc))
+        {
+            yamaIndexes.add(npc.getIndex());
+            return;
+        }
+
+        if (npc != null && VOID_FLARE_NPC_IDS.contains(npc.getId()))
+        {
+            voidFlareIndexes.add(npc.getIndex());
+        }
+    }
+
+    @Subscribe
+    public void onNpcDespawned(NpcDespawned e)
+    {
+        NPC npc = e.getNpc();
+        if (npc == null) return;
+
+        yamaIndexes.remove(npc.getIndex());
+        voidFlareIndexes.remove(npc.getIndex());
+    }
+
+    public List<NPC> getVoidFlares()
+    {
+        List<NPC> out = new ArrayList<>();
+        for (NPC n : client.getNpcs())
+        {
+            if (n != null && voidFlareIndexes.contains(n.getIndex()))
+            {
+                out.add(n);
+            }
+        }
+        return out;
+    }
     /* ---------------- Visible spotanims → cosmetic flare on Yama ---------------- */
 
     @Subscribe
     public void onGraphicChanged(GraphicChanged e)
     {
         Actor actor = e.getActor();
-
-        if (actor instanceof NPC)
+        if (!(actor instanceof NPC))
         {
-            NPC npc = (NPC) actor;
-            if (!yamaIndexes.contains(npc.getIndex())) return;
+            return;
+        }
 
-            for (ActorSpotAnim s : npc.getSpotAnims())
+        NPC npc = (NPC) actor;
+        if (!yamaIndexes.contains(npc.getIndex()))
+        {
+            return;
+        }
+
+        for (ActorSpotAnim s : npc.getSpotAnims())
+        {
+            int gfx = s.getId();
+
+            // Keep your existing flare timers
+            int now = client.getTickCount();
+            int expiry = now + Math.max(1, config.flashTicks());
+
+            if (gfx == NPC_GFX_MAGIC)  magicNpcExpiryTick  = expiry;
+            if (gfx == NPC_GFX_RANGED) rangedNpcExpiryTick = expiry;
+
+            // NEW: callouts
+            if (gfx == NPC_GFX_RANGED)
             {
-                int gfx = s.getId();
-                int now = client.getTickCount();
-                int expiry = now + Math.max(1, config.flashTicks());
-
-                if (gfx == NPC_GFX_MAGIC)  magicNpcExpiryTick  = expiry;
-                if (gfx == NPC_GFX_RANGED) rangedNpcExpiryTick = expiry;
+                setCallout("PRAY MAGIC, WALK NEAR BLUE", Prayer.PROTECT_FROM_MAGIC);
+            }
+            else if (gfx == NPC_GFX_MAGIC)
+            {
+                setCallout("PRAY MAGIC, WALK NEAR RED", Prayer.PROTECT_FROM_MAGIC);
+            }
+            else if (gfx == VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01)
+            {
+                setCallout("SHADOW STOMP, PRAY RANGE, WALK NEAR BLUE", Prayer.PROTECT_FROM_MISSILES);
+            }
+            else if (gfx == VFX_YAMA_METEOR_SPOTANIM01)
+            {
+                setCallout("FIRE BALL, WALK ON RED, PRAY MAGIC", Prayer.PROTECT_FROM_MAGIC);
             }
         }
-        // (Intentionally ignoring player spotanims per design)
     }
-
     /* ---------------- Rockfall tiles from ground GFX ---------------- */
 
     @Subscribe
@@ -146,6 +237,12 @@ public class YamaColorblindHelperPlugin extends Plugin
 
         if (magicNpcExpiryTick  > 0 && now > magicNpcExpiryTick)  magicNpcExpiryTick  = -1;
         if (rangedNpcExpiryTick > 0 && now > rangedNpcExpiryTick) rangedNpcExpiryTick = -1;
+        if (calloutExpiryTick > 0 && client.getTickCount() >= calloutExpiryTick)
+        {
+            calloutText = null;
+            calloutPrayer = null;
+            calloutExpiryTick = -1;
+        }
     }
 
     /* ---------------- Accessors for overlay ---------------- */

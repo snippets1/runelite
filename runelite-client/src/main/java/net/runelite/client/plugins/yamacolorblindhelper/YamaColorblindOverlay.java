@@ -1,9 +1,6 @@
 package net.runelite.client.plugins.yamacolorblindhelper;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Polygon;
+import java.awt.*;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -61,6 +58,55 @@ public class YamaColorblindOverlay extends Overlay
                         drawArea(g, npcLp, size, pulse(resolveRangeColor(), pulseMul), resolveOutlineColor());
                 }
             }
+        }
+        NPC yama = plugin.getYamaNpc();
+        String text = plugin.getCalloutText();
+        if (yama != null && text != null)
+        {
+            // Optional countdown
+            int rem = plugin.getCalloutTicksRemaining();
+            String display = rem > 0 ? (text + "  (" + rem + ")") : text;
+
+            net.runelite.api.Point p = yama.getCanvasTextLocation(g, display, 120);
+            if (p != null)
+            {
+                g.setFont(g.getFont().deriveFont(Font.BOLD, 16f));
+
+                // shadow
+                g.setColor(Color.BLACK);
+                g.drawString(display, p.getX() + 1, p.getY() + 1);
+
+                // main
+                g.setColor(Color.WHITE);
+                g.drawString(display, p.getX(), p.getY());
+            }
+        }
+
+        for (NPC flare : plugin.getVoidFlares())
+        {
+            Shape hull = flare.getConvexHull();
+            if (hull == null)
+            {
+                hull = flare.getCanvasTilePoly(); // fallback
+            }
+            if (hull == null)
+            {
+                continue;
+            }
+
+            Rectangle r = hull.getBounds();
+            if (r == null)
+            {
+                continue;
+            }
+
+            // Fill + outline (re-use your palette if you want)
+            g.setColor(new Color(0, 255, 255, 50));   // light fill (change as desired)
+            g.fillRect(r.x, r.y, r.width, r.height);
+
+            g.setColor(new Color(255, 255, 255, 220)); // outline
+            g.setStroke(new BasicStroke(2f));
+            g.drawRect(r.x, r.y, r.width, r.height);
         }
 
         // 2) Rockfall tiles (ground GFX → tile highlight)
