@@ -5,10 +5,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import net.runelite.api.Client;
-import net.runelite.api.NPC;
-import net.runelite.api.NPCComposition;
-import net.runelite.api.Perspective;
+import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.Overlay;
@@ -159,6 +156,44 @@ public class YamaColorblindOverlay extends Overlay
                     g.setStroke(new BasicStroke(3f));
                     g.drawPolygon(poly);
                 }
+            }
+        }
+        final Player me = client.getLocalPlayer();
+        final Prayer calloutPrayer = plugin.getCalloutPrayer();
+
+        if (me != null && calloutPrayer != null)
+        {
+            final int rem = plugin.getCalloutTicksRemaining();
+
+            final String prayText;
+            switch (calloutPrayer)
+            {
+                case PROTECT_FROM_MAGIC:
+                    prayText = rem > 0 ? "PRAY MAGIC (" + rem + ")" : "PRAY MAGIC";
+                    break;
+                case PROTECT_FROM_MISSILES:
+                    prayText = rem > 0 ? "PRAY RANGE (" + rem + ")" : "PRAY RANGE";
+                    break;
+                case PROTECT_FROM_MELEE:
+                    prayText = rem > 0 ? "PRAY MELEE (" + rem + ")" : "PRAY MELEE";
+                    break;
+                default:
+                    return null; // or just do nothing
+            }
+
+            // Draw above your character
+            final net.runelite.api.Point pt = me.getCanvasTextLocation(g, prayText, 40);
+            if (pt != null)
+            {
+                g.setFont(g.getFont().deriveFont(Font.BOLD, 18f));
+
+                // shadow
+                g.setColor(Color.BLACK);
+                g.drawString(prayText, pt.getX() + 1, pt.getY() + 1);
+
+                // main
+                g.setColor(Color.WHITE);
+                g.drawString(prayText, pt.getX(), pt.getY());
             }
         }
 

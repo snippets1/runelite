@@ -39,6 +39,7 @@ public class YamaColorblindHelperPlugin extends Plugin
     private WorldPoint dodgeTile;
     private int dodgeTileExpiryTick = -1;
 
+
     // Dedupe per projectile instance
     private int lastFlamingRockStartCycle = -1;
 
@@ -352,6 +353,7 @@ public class YamaColorblindHelperPlugin extends Plugin
         }
         return out;
     }
+
     /* ---------------- Visible spotanims → cosmetic flare on Yama ---------------- */
     @Subscribe
     public void onGraphicChanged(GraphicChanged e)
@@ -410,13 +412,13 @@ public class YamaColorblindHelperPlugin extends Plugin
         else if (sawRange)
         {
             chosenGfx = NPC_GFX_RANGED;
-            msg = "RANGED ATTACK";
+            msg = "RANGED ATTACK, PRAY RANGE";
             pray = Prayer.PROTECT_FROM_MISSILES;
         }
         else if (sawMagic)
         {
             chosenGfx = NPC_GFX_MAGIC;
-            msg = "MAGIC ATTACK";
+            msg = "MAGIC ATTACK, PRAY MAGIC";
             pray = Prayer.PROTECT_FROM_MAGIC;
         }
 
