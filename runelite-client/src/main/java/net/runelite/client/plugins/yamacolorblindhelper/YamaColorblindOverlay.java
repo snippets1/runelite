@@ -35,55 +35,57 @@ public class YamaColorblindOverlay extends Overlay
     @Override
     public java.awt.Dimension render(Graphics2D g)
     {
-        int tick = client.getTickCount();
-        float pulseMul = config.pulse() ? (0.85f + 0.15f * ((tick & 1) == 0 ? 1f : 0f)) : 1f;
+        final int tick = client.getTickCount();
+        final float pulseMul = config.pulse()
+                ? (0.85f + 0.15f * ((tick & 1) == 0 ? 1f : 0f))
+                : 1f;
 
         // 1) Yama full-footprint flare (if active)
         if (plugin.isYamaPresent() && config.enableOnNpc() && config.npcFullArea())
         {
-            NPC yama = plugin.getYamaNpc();
-            if (yama != null)
+            final NPC yamaNpc = plugin.getYamaNpc();
+            if (yamaNpc != null)
             {
                 int size = 1;
-                NPCComposition comp = yama.getTransformedComposition();
-                if (comp == null) comp = yama.getComposition();
-                if (comp != null) size = Math.max(1, comp.getSize());
 
-                LocalPoint npcLp = yama.getLocalLocation();
+                NPCComposition comp = yamaNpc.getTransformedComposition();
+                if (comp == null)
+                {
+                    comp = yamaNpc.getComposition();
+                }
+                if (comp != null)
+                {
+                    size = Math.max(1, comp.getSize());
+                }
+
+                final LocalPoint npcLp = yamaNpc.getLocalLocation();
                 if (npcLp != null)
                 {
                     if (plugin.isMagicNpcActive())
-                        drawArea(g, npcLp, size, pulse(resolveMagicColor(), pulseMul), resolveOutlineColor());
+                    {
+                        drawArea(g, npcLp, size,
+                                pulse(resolveMagicColor(), pulseMul),
+                                resolveOutlineColor());
+                    }
+
                     if (plugin.isRangedNpcActive())
-                        drawArea(g, npcLp, size, pulse(resolveRangeColor(), pulseMul), resolveOutlineColor());
+                    {
+                        drawArea(g, npcLp, size,
+                                pulse(resolveRangeColor(), pulseMul),
+                                resolveOutlineColor());
+                    }
                 }
             }
         }
-        NPC yama = plugin.getYamaNpc();
-        String text = plugin.getCalloutText();
-        if (yama != null && text != null)
-        {
-            // Optional countdown
-            int rem = plugin.getCalloutTicksRemaining();
-            String display = rem > 0 ? (text + "  (" + rem + ")") : text;
 
-            net.runelite.api.Point p = yama.getCanvasTextLocation(g, display, 120);
-            if (p != null)
-            {
-                g.setFont(g.getFont().deriveFont(Font.BOLD, 16f));
-
-                // shadow
-                g.setColor(Color.BLACK);
-                g.drawString(display, p.getX() + 1, p.getY() + 1);
-
-                // main
-                g.setColor(Color.WHITE);
-                g.drawString(display, p.getX(), p.getY());
-            }
-        }
-
+        // 2) Void Flare rectangles
         for (NPC flare : plugin.getVoidFlares())
         {
+            if (flare == null)
+            {
+                continue;
+            }
+
             Shape hull = flare.getConvexHull();
             if (hull == null)
             {
@@ -100,18 +102,46 @@ public class YamaColorblindOverlay extends Overlay
                 continue;
             }
 
-            // Fill + outline (re-use your palette if you want)
-            g.setColor(new Color(0, 255, 255, 50));   // light fill (change as desired)
+            // Fill + outline (tweak colors if you like)
+            g.setColor(new Color(0, 255, 255, 50));      // light cyan fill
             g.fillRect(r.x, r.y, r.width, r.height);
 
-            g.setColor(new Color(255, 255, 255, 220)); // outline
+            g.setColor(new Color(255, 255, 255, 220));   // white outline
             g.setStroke(new BasicStroke(2f));
             g.drawRect(r.x, r.y, r.width, r.height);
         }
 
-        // 2) Rockfall tiles (ground GFX → tile highlight)
+        // 3) Rockfall tiles (ground GFX → tile highlight)
         if (config.enableRockTiles())
-            drawRings(g, plugin.getRockTiles(), pulse(resolveRockFill(), pulseMul), resolveRockOutline());
+        {
+            drawRings(g,
+                    plugin.getRockTiles(),
+                    pulse(resolveRockFill(), pulseMul),
+                    resolveRockOutline());
+        }
+
+        final NPC yamaNpc = plugin.getYamaNpc();
+        final String text = plugin.getCalloutText();
+
+        if (yamaNpc != null && text != null)
+        {
+            final int rem = plugin.getCalloutTicksRemaining();
+            final String display = rem > 0 ? (text + " (" + rem + ")") : text;
+
+            final net.runelite.api.Point p = yamaNpc.getCanvasTextLocation(g, display, 120);
+            if (p != null)
+            {
+                g.setFont(g.getFont().deriveFont(Font.BOLD, 16f));
+
+                // shadow
+                g.setColor(Color.BLACK);
+                g.drawString(display, p.getX() + 1, p.getY() + 1);
+
+                // main
+                g.setColor(Color.WHITE);
+                g.drawString(display, p.getX(), p.getY());
+            }
+        }
 
         return null;
     }

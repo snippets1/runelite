@@ -7,11 +7,7 @@ import javax.inject.Inject;
 
 import net.runelite.api.*;
 import net.runelite.api.coords.LocalPoint;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.GraphicChanged;
-import net.runelite.api.events.GraphicsObjectCreated;
-import net.runelite.api.events.NpcDespawned;
-import net.runelite.api.events.NpcSpawned;
+import net.runelite.api.events.*;
 
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -29,10 +25,11 @@ public class YamaColorblindHelperPlugin extends Plugin
     private static final Set<Integer> YAMA_NPC_IDS = Set.of(14176);
 
     // Yama arm/actor spotanims (visible on NPC)
-    private static final int NPC_GFX_MAGIC  = 3246;
-    private static final int NPC_GFX_RANGED = 3243;
+    private static final int NPC_GFX_MAGIC  = 3249;
+    private static final int NPC_GFX_RANGED = 3253;
     private static final int VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01 = 3256;
     private static final int VFX_YAMA_METEOR_SPOTANIM01 = 3270;
+    private static final int YAMA_SPECIAL_ATTACK = 12145;
     private String calloutText = null;
     private int calloutExpiryTick = -1;
     private static final Set<Integer> VOID_FLARE_NPC_IDS = Set.of(14179); // (you listed 14179 twice)
@@ -57,6 +54,27 @@ public class YamaColorblindHelperPlugin extends Plugin
         calloutText = text;
         calloutPrayer = prayer;
         calloutExpiryTick = expiry;
+    }
+
+    @Subscribe
+    public void onAnimationChanged(AnimationChanged e)
+    {
+        Actor actor = e.getActor();
+        if (!(actor instanceof NPC))
+        {
+            return;
+        }
+
+        NPC npc = (NPC) actor;
+        if (!yamaIndexes.contains(npc.getIndex()))
+        {
+            return;
+        }
+
+        if (npc.getAnimation() == YAMA_SPECIAL_ATTACK)
+        {
+            setCallout("WALK ON CIRCLE NOW", null);
+        }
     }
 
     @Inject private Client client;
@@ -193,14 +211,14 @@ public class YamaColorblindHelperPlugin extends Plugin
             if (gfx == NPC_GFX_MAGIC)  magicNpcExpiryTick  = expiry;
             if (gfx == NPC_GFX_RANGED) rangedNpcExpiryTick = expiry;
 
-            // NEW: callouts
+
             if (gfx == NPC_GFX_RANGED)
             {
-                setCallout("PRAY MAGIC, WALK NEAR BLUE", Prayer.PROTECT_FROM_MAGIC);
+                setCallout("RANGED ATTACK", Prayer.PROTECT_FROM_MAGIC);
             }
             else if (gfx == NPC_GFX_MAGIC)
             {
-                setCallout("PRAY MAGIC, WALK NEAR RED", Prayer.PROTECT_FROM_MAGIC);
+                setCallout("MAGIC ATTACK", Prayer.PROTECT_FROM_MAGIC);
             }
             else if (gfx == VFX_YAMA_SHADOW_SPIKE_SPOTANIM_01)
             {
