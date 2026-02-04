@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2026, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,50 +22,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.api;
+package net.runelite.client.plugins.worldhopper.ping;
 
-import java.awt.Shape;
+import com.sun.jna.Structure;
+import com.sun.jna.platform.win32.WinDef;
+import java.util.List;
 
-/**
- * Represents a decorative object, such as an object on a wall.
- */
-public interface DecorativeObject extends TileObject
+public class TCP_INFO_v0 extends Structure
 {
-	/**
-	 * Gets the convex hull of the objects model.
-	 *
-	 * @return the convex hull
-	 * @see net.runelite.api.model.Jarvis
-	 */
-	Shape getConvexHull();
-	Shape getConvexHull2();
+	public WinDef.ULONG State;
+	public WinDef.ULONG Mss;
+	public WinDef.ULONGLONG ConnectionTimeMs;
+	public WinDef.BOOL TimestampsEnabled;
+	public WinDef.ULONG RttUs;
+	public WinDef.ULONG MinRttUs;
+	public WinDef.ULONG BytesInFlight;
+	public WinDef.ULONG Cwnd;
+	public WinDef.ULONG SndWnd;
+	public WinDef.ULONG RcvWnd;
+	public WinDef.ULONG RcvBuf;
+	public WinDef.ULONGLONG BytesOut;
+	public WinDef.ULONGLONG BytesIn;
+	public WinDef.ULONG BytesReordered;
+	public WinDef.ULONG BytesRetrans;
+	public WinDef.ULONG FastRetrans;
+	public WinDef.ULONG DupAcksIn;
+	public WinDef.ULONG TimeoutEpisodes;
+	public WinDef.UCHAR SynRetrans;
 
-	Renderable getRenderable();
-	Renderable getRenderable2();
-
-	/**
-	 * Decorative object x offset. This is added to the x position of the object, and is used to
-	 * account for walls of varying widths.
-	 */
-	int getXOffset();
-
-	/**
-	 * Decorative object y offset. This is added to the z position of the object, and is used to
-	 * account for walls of varying widths.
-	 */
-	int getYOffset();
-
-	int getXOffset2();
-
-	int getYOffset2();
-
-	/**
-	 * A bitfield containing various flags:
-	 * <pre>{@code
-	 * object type id = bits & 0x20
-	 * orientation (0-3) = bits >>> 6 & 3
-	 * supports items = bits >>> 8 & 1
-	 * }</pre>
-	 */
-	int getConfig();
+	@Override
+	protected List<String> getFieldOrder()
+	{
+		return List.of(
+			"State",
+			"Mss",
+			"ConnectionTimeMs",
+			"TimestampsEnabled",
+			"RttUs",
+			"MinRttUs",
+			"BytesInFlight",
+			"Cwnd",
+			"SndWnd",
+			"RcvWnd",
+			"RcvBuf",
+			"BytesOut",
+			"BytesIn",
+			"BytesReordered",
+			"BytesRetrans",
+			"FastRetrans",
+			"DupAcksIn",
+			"TimeoutEpisodes",
+			"SynRetrans"
+		);
+	}
 }

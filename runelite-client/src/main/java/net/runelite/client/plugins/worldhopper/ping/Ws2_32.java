@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2026, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,50 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.api;
+package net.runelite.client.plugins.worldhopper.ping;
 
-import java.awt.Shape;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.WinNT;
+import com.sun.jna.ptr.IntByReference;
 
-/**
- * Represents a decorative object, such as an object on a wall.
- */
-public interface DecorativeObject extends TileObject
+interface Ws2_32 extends Library
 {
-	/**
-	 * Gets the convex hull of the objects model.
-	 *
-	 * @return the convex hull
-	 * @see net.runelite.api.model.Jarvis
-	 */
-	Shape getConvexHull();
-	Shape getConvexHull2();
+	Ws2_32 INSTANCE = Native.loadLibrary("Ws2_32", Ws2_32.class);
 
-	Renderable getRenderable();
-	Renderable getRenderable2();
+	int SIO_TCP_INFO = 0xD800_0027;
 
-	/**
-	 * Decorative object x offset. This is added to the x position of the object, and is used to
-	 * account for walls of varying widths.
-	 */
-	int getXOffset();
-
-	/**
-	 * Decorative object y offset. This is added to the z position of the object, and is used to
-	 * account for walls of varying widths.
-	 */
-	int getYOffset();
-
-	int getXOffset2();
-
-	int getYOffset2();
-
-	/**
-	 * A bitfield containing various flags:
-	 * <pre>{@code
-	 * object type id = bits & 0x20
-	 * orientation (0-3) = bits >>> 6 & 3
-	 * supports items = bits >>> 8 & 1
-	 * }</pre>
-	 */
-	int getConfig();
+	int WSAIoctl(WinNT.HANDLE socket, int dwIoControlCode, Pointer lpvInBuffer, int cbInBuffer, Pointer lpvOutBuffer, int cbOutBuffer, IntByReference lpcbBytesReturned, Pointer lpOverlapped, Pointer lpCompletionRoutine);
 }
