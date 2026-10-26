@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2024, LlemonDuck <napkinorton@gmail.com>
+ * Copyright (c) 2019, Tomas Slusny <slusnucky@gmail.com>
+ * Copyright (c) 2021, Jonathan Rousseau <https://github.com/JoRouss>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,32 +23,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.gradle.component;
+package net.runelite.client.plugins.party.data;
 
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.tasks.SourceSet;
-import org.gradle.api.tasks.SourceSetContainer;
-import org.gradle.api.tasks.TaskProvider;
+import java.awt.Color;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import net.runelite.client.ui.overlay.components.PanelComponent;
+import net.runelite.client.ui.overlay.worldmap.WorldMapPoint;
 
-public class ComponentPlugin implements Plugin<Project>
+@Setter
+@Getter
+@RequiredArgsConstructor
+public class PartyMemberData
 {
-
-	@Override
-	public void apply(Project project)
-	{
-		TaskProvider<ComponentTask> packComponents = project.getTasks()
-			.register("packComponents", ComponentTask.class, (task) -> task.setGroup("build"));
-
-		project.getTasks()
-			.getByName("compileJava")
-			.dependsOn(packComponents);
-
-		project.getExtensions()
-			.getByType(SourceSetContainer.class)
-			.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-			.getJava()
-			.srcDir(packComponents.map(ComponentTask::getOutputDirectory));
-	}
-
+	private final long memberId;
+	private final WorldMapPoint worldMapPoint;
+	private final PanelComponent panel = new PanelComponent();
+	private Color color = Color.WHITE;
 }

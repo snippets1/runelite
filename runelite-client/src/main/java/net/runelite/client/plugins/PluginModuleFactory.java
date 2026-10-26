@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Tomas Slusny <slusnucky@gmail.com>
+ * Copyright (c) 2026 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,29 +22,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.party.messages;
+package net.runelite.client.plugins;
 
-import lombok.ToString;
-import net.runelite.api.coords.WorldPoint;
-import net.runelite.client.party.messages.PartyMemberMessage;
+import com.google.inject.AbstractModule;
+import javax.inject.Singleton;
+import lombok.RequiredArgsConstructor;
 
-@ToString(onlyExplicitlyIncluded = true)
-public class LocationUpdate extends PartyMemberMessage
+@Singleton
+class PluginModuleFactory
 {
-	private final int c;
-
-	public LocationUpdate(WorldPoint worldPoint)
+	@RequiredArgsConstructor
+	class PluginModule extends AbstractModule
 	{
-		c = (worldPoint.getPlane() << 28) | (worldPoint.getX() << 14) | (worldPoint.getY());
-	}
+		private final Plugin plugin;
 
-	@ToString.Include
-	public WorldPoint getWorldPoint()
-	{
-		return new WorldPoint(
-			(c >> 14) & 0x3fff,
-			c & 0x3fff,
-			(c >> 28) & 3
-		);
+		@Override
+		protected void configure()
+		{
+			// Since the plugin itself is a module, it won't bind itself, so we'll bind it here
+			binder().bind((Class<Plugin>) plugin.getClass()).toInstance(plugin);
+			binder().install(plugin);
+		}
 	}
 }
